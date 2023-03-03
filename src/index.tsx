@@ -6,8 +6,8 @@ const LINKING_ERROR =
   '- You rebuilt the app after installing the package\n' +
   '- You are not using Expo Go\n';
 
-const ChunckedDownload = NativeModules.ChunckedDownload
-  ? NativeModules.ChunckedDownload
+const ChunckedDl = NativeModules.ChunckedDl
+  ? NativeModules.ChunckedDl
   : new Proxy(
       {},
       {
@@ -24,7 +24,7 @@ export function request(options: {
   chunkSize?: number;
   headers?: { [key: string]: string };
 }): Promise<number> {
-  return ChunckedDownload.request(
+  return ChunckedDl.request(
     options.url,
     options.toFile,
     options.contentLength,
