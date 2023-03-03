@@ -1,11 +1,11 @@
-package com.chunkeddownload
+package com.chunkeddl
 
 import com.facebook.react.bridge.*
 import java.io.File
 import java.net.HttpURLConnection
 import java.net.URL
 
-class ChunkedDownloadModule(reactContext: ReactApplicationContext) :
+class ChunkedDlModule(reactContext: ReactApplicationContext) :
   ReactContextBaseJavaModule(reactContext) {
 
   override fun getName(): String {
@@ -66,6 +66,6 @@ class ChunkedDownloadModule(reactContext: ReactApplicationContext) :
   }
 
   companion object {
-    const val NAME = "ChunkedDownload"
+    const val NAME = "ChunkedDl"
   }
 }
