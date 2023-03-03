@@ -1,18 +1,34 @@
 import * as React from 'react';
-
+import FS from 'react-native-fs';
 import { StyleSheet, View, Text } from 'react-native';
-import { multiply } from 'react-native-chunked-dl';
+import { request } from 'react-native-chunked-download';
 
 export default function App() {
-  const [result, setResult] = React.useState<number | undefined>();
-
   React.useEffect(() => {
-    multiply(3, 7).then(setResult);
+    console.log(FS.DocumentDirectoryPath + '/playback.m4a');
+    const startDate = new Date().getTime();
+    request({
+      url: 'https://google.com',
+      toFile: FS.DocumentDirectoryPath + '/playback.m4a',
+      contentLength: 3548166,
+      chunkSize: 1024 * 1024 * 10,
+      headers: {
+        'Content-Type': 'application/text',
+      },
+    })
+      .then(() => {
+        const endDate = new Date().getTime();
+        console.log('completed in', startDate - endDate);
+      })
+      .catch(() => {
+        const endDate = new Date().getTime();
+        console.log('failed in', startDate - endDate);
+      });
   }, []);
 
   return (
     <View style={styles.container}>
-      <Text>Result: {result}</Text>
+      <Text>Download</Text>
     </View>
   );
 }

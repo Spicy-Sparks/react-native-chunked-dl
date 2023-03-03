@@ -1,21 +1,29 @@
-# react-native-chunked-dl
+# react-native-chunked-download
 
-Chunked dwnloader for react-native
+Chunked download for react-native
 
 ## Installation
 
 ```sh
-npm install react-native-chunked-dl
+npm install react-native-chunked-download
 ```
 
 ## Usage
 
 ```js
-import { multiply } from 'react-native-chunked-dl';
+import { request } from 'react-native-chunked-download';
 
 // ...
 
-const result = await multiply(3, 7);
+const result = await request({
+    url: 'https://google.com',
+    toFile: FS.DocumentDirectoryPath + '/playback.m4a',
+    contentLength: 3548166,
+    chunkSize: 1024 * 1024 * 10,
+    headers: {
+        'Content-Type': 'application/text',
+    }
+});
 ```
 
 ## Contributing
