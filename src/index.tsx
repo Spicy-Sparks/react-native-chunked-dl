@@ -1,13 +1,13 @@
 import { NativeModules, Platform } from 'react-native';
 
 const LINKING_ERROR =
-  `The package 'react-native-chunked-download' doesn't seem to be linked. Make sure: \n\n` +
+  `The package 'react-native-chunked-dl' doesn't seem to be linked. Make sure: \n\n` +
   Platform.select({ ios: "- You have run 'pod install'\n", default: '' }) +
   '- You rebuilt the app after installing the package\n' +
   '- You are not using Expo Go\n';
 
-const ChunckedDl = NativeModules.ChunckedDl
-  ? NativeModules.ChunckedDl
+const ChunkedDl = NativeModules.ChunkedDl
+  ? NativeModules.ChunkedDl
   : new Proxy(
       {},
       {
@@ -24,7 +24,7 @@ export function request(options: {
   chunkSize?: number;
   headers?: { [key: string]: string };
 }): Promise<number> {
-  return ChunckedDl.request(
+  return ChunkedDl.request(
     options.url,
     options.toFile,
     options.contentLength,
