@@ -2,10 +2,7 @@
 
 @interface RCT_EXTERN_MODULE(ChunkedDl, NSObject)
 
-RCT_EXTERN_METHOD(download:(NSString)url toFile:(NSString)toFile
-                  contentLength:(int)contentLength
-                  chunkSize:(int)chunkSize
-                  headers:(NSDictionary*)headers
+RCT_EXTERN_METHOD(download:(NSDictionary*)options
                  withResolver:(RCTPromiseResolveBlock)resolve
                  withRejecter:(RCTPromiseRejectBlock)reject)
 
