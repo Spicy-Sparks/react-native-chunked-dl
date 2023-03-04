@@ -1,5 +1,5 @@
-@objc(ChunckedDownload)
-class ChunckedDownload: NSObject {
+@objc(ChunkedDl)
+class ChunkedDl: NSObject {
 
     @objc(request:toFile:contentLength:chunkSize:headers:withResolver:withRejecter:)
     func request(url: NSString, toFile: NSString, contentLength: Int, chunkSize: Int, headers: NSDictionary, resolve:@escaping RCTPromiseResolveBlock, reject:@escaping RCTPromiseRejectBlock) -> Void {

@@ -1,6 +1,6 @@
 #import <React/RCTBridgeModule.h>
 
-@interface RCT_EXTERN_MODULE(ChunckedDownload, NSObject)
+@interface RCT_EXTERN_MODULE(ChunkedDl, NSObject)
 
 RCT_EXTERN_METHOD(request:(NSString)url toFile:(NSString)toFile
                   contentLength:(int)contentLength
