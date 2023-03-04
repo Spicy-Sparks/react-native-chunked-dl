@@ -12,13 +12,15 @@ class ChunkedDlModule(reactContext: ReactApplicationContext) : ReactContextBaseJ
   }
 
   @ReactMethod
-  fun downloadFile(options: ReadableMap, promise: Promise) {
+  fun download(options: ReadableMap, promise: Promise) {
     try {
       val jobId = options.getInt("jobId")
       val params = DownloadParams()
       params.url = options.getString("url")
       params.toFile = options.getString("toFile")
       params.headers = options.getMap("headers")
+      params.contentLength = options.getInt("contentLength")
+      params.chunkSize = options.getInt("chunkSize")
       params.onTaskCompleted = object : DownloadParams.OnTaskCompleted {
         override fun onTaskCompleted(res: DownloadResult?) {
           if (res!!.exception == null) {
