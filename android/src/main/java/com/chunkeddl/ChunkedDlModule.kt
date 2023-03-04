@@ -2,6 +2,10 @@ package com.chunkeddl
 
 import com.facebook.react.bridge.*
 import java.io.File
+import java.io.FileInputStream
+import java.io.FileOutputStream
+import java.io.InputStream
+import java.io.OutputStream
 import java.net.HttpURLConnection
 import java.net.URL
 
@@ -19,7 +23,9 @@ class ChunkedDlModule(reactContext: ReactApplicationContext) :
     var end = if (chunkSize <= 0) 1024 * 1024 * 10 else chunkSize
 
     var file = File(toFile)
-    file.createNewFile()
+
+    var inputStream : InputStream
+    var outputStream : OutputStream = FileOutputStream(file)
 
     fun getNextChunk() {
       if (end >= contentLength){
@@ -37,11 +43,11 @@ class ChunkedDlModule(reactContext: ReactApplicationContext) :
           conn.setRequestProperty(header.key, header.value as String)
 
         if (conn.responseCode == HttpURLConnection.HTTP_OK) {
-          val inputStream = conn.inputStream
+          inputStream = conn.inputStream
           if (!file.exists()) {
             promise.reject("File does not exists")
           }
-          file.appendBytes(inputStream.readBytes())
+          outputStream.write(inputStream.readBytes())
           inputStream.close()
         } else {
           promise.reject("HTTP Error: ${conn.responseCode} ${conn.responseMessage}")
@@ -57,6 +63,12 @@ class ChunkedDlModule(reactContext: ReactApplicationContext) :
         end += chunkSize
         getNextChunk()
         return
+      }
+
+      try{
+        outputStream.close()
+      } catch (e: Exception) {
+        promise.reject(e.message)
       }
 
       promise.resolve(true)
