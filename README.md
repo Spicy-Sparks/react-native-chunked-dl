@@ -11,11 +11,14 @@ npm install react-native-chunked-dl
 ## Usage
 
 ```js
-import { request } from 'react-native-chunked-dl';
+import { download, stopDownload } from 'react-native-chunked-dl';
 
 // ...
 
-const result = await request({
+const {
+    jobId,
+    promise
+} = download({
     url: 'https://google.com',
     toFile: FS.DocumentDirectoryPath + '/playback.m4a',
     contentLength: 3548166,
@@ -24,6 +27,16 @@ const result = await request({
         'Content-Type': 'application/text',
     }
 });
+
+promise.then((result) => {
+    console.log(result.statusCode)
+}).catch((err) => {
+    console.log(err)
+});
+
+setTimeout(() => {
+    stopDownload(jobId)
+}, 1000)
 ```
 
 ## Contributing

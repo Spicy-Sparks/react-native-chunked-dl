@@ -103,7 +103,11 @@ class Downloader: NSObject, URLSessionDataDelegate {
             return
         }
         
-        resolveCallback!(true)
+        resolveCallback!([
+            "jobId": jobId,
+            "statusCode": 200,
+            "bytesWritten": contentLength
+        ])
     }
     
     func stopDownload(){

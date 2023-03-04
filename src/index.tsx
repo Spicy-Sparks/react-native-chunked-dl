@@ -58,3 +58,9 @@ export function resumeDownload(jobId: number): Promise<void> {
     throw new Error('resumeDownload is not supported');
   return ChunkedDl.resumeDownload(jobId);
 }
+
+export function suspendDownload(jobId: number): Promise<void> {
+  if(!ChunkedDl.suspendDownload)
+    throw new Error('suspendDownload is not supported');
+  return ChunkedDl.suspendDownload(jobId);
+}
