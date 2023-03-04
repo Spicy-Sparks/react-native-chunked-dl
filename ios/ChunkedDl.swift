@@ -4,10 +4,11 @@ class ChunckedDownload: NSObject {
     @objc(request:toFile:contentLength:chunkSize:headers:withResolver:withRejecter:)
     func request(url: NSString, toFile: NSString, contentLength: Int, chunkSize: Int, headers: NSDictionary, resolve:@escaping RCTPromiseResolveBlock, reject:@escaping RCTPromiseRejectBlock) -> Void {
       
-        var start = 0;
-        var end = chunkSize <= 0 ? 1024 * 1024 * 10 : chunkSize;
+        var start = 0
+        var end = chunkSize <= 0 ? 1024 * 1024 * 10 : chunkSize
         
-        let sessionConfig = URLSessionConfiguration.default
+        let uuid = UUID().uuidString
+        let sessionConfig = URLSessionConfiguration.background(withIdentifier: uuid)
         let session = URLSession(configuration: sessionConfig, delegate: nil, delegateQueue: nil)
         
         let fileURL = URL(fileURLWithPath: toFile as String, isDirectory: false)
