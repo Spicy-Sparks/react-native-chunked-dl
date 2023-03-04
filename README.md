@@ -1,17 +1,17 @@
-# react-native-chunked-download
+# react-native-chunked-dl
 
 Chunked download for react-native
 
 ## Installation
 
 ```sh
-npm install react-native-chunked-download
+npm install react-native-chunked-dl
 ```
 
 ## Usage
 
 ```js
-import { request } from 'react-native-chunked-download';
+import { request } from 'react-native-chunked-dl';
 
 // ...
 
