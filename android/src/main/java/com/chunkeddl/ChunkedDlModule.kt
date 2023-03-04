@@ -1,80 +1,52 @@
 package com.chunkeddl
 
+import android.util.SparseArray
 import com.facebook.react.bridge.*
-import java.io.File
-import java.io.FileInputStream
-import java.io.FileOutputStream
-import java.io.InputStream
-import java.io.OutputStream
-import java.net.HttpURLConnection
-import java.net.URL
 
-class ChunkedDlModule(reactContext: ReactApplicationContext) :
-  ReactContextBaseJavaModule(reactContext) {
+class ChunkedDlModule(reactContext: ReactApplicationContext) : ReactContextBaseJavaModule(reactContext) {
+
+  private val downloaders: SparseArray<Downloader> = SparseArray()
 
   override fun getName(): String {
     return NAME
   }
 
   @ReactMethod
-  fun request(url: String, toFile: String, contentLength: Int, chunkSize: Int, headers: ReadableMap, promise: Promise) {
-
-    var start = 0
-    var end = if (chunkSize <= 0) 1024 * 1024 * 10 else chunkSize
-
-    var file = File(toFile)
-
-    var inputStream : InputStream
-    var outputStream : OutputStream = FileOutputStream(file)
-
-    fun getNextChunk() {
-      if (end >= contentLength){
-        end = contentLength
-      }
-
-      val isFinalChunk = end >= contentLength
-
-      try {
-        val url = URL("${url}&range=${start}-${end}")
-        val conn = url.openConnection() as HttpURLConnection
-        conn.requestMethod = "GET"
-
-        for(header in headers.entryIterator)
-          conn.setRequestProperty(header.key, header.value as String)
-
-        if (conn.responseCode == HttpURLConnection.HTTP_OK) {
-          inputStream = conn.inputStream
-          if (!file.exists()) {
-            promise.reject("File does not exists")
+  fun downloadFile(options: ReadableMap, promise: Promise) {
+    try {
+      val jobId = options.getInt("jobId")
+      val params = DownloadParams()
+      params.url = options.getString("url")
+      params.toFile = options.getString("toFile")
+      params.headers = options.getMap("headers")
+      params.onTaskCompleted = object : DownloadParams.OnTaskCompleted {
+        override fun onTaskCompleted(res: DownloadResult?) {
+          if (res!!.exception == null) {
+            val infoMap = Arguments.createMap()
+            infoMap.putInt("jobId", jobId)
+            infoMap.putInt("statusCode", res.statusCode)
+            infoMap.putDouble("bytesWritten", res.bytesWritten.toDouble())
+            promise.resolve(infoMap)
+          } else {
+            promise.reject(options.getString("toFile"), res.exception)
           }
-          outputStream.write(inputStream.readBytes())
-          inputStream.close()
-        } else {
-          promise.reject("HTTP Error: ${conn.responseCode} ${conn.responseMessage}")
         }
-
-        conn.disconnect()
-      } catch (e: Exception) {
-        promise.reject(e.message)
       }
-
-      if(!isFinalChunk) {
-        start = end + 1
-        end += chunkSize
-        getNextChunk()
-        return
-      }
-
-      try{
-        outputStream.close()
-      } catch (e: Exception) {
-        promise.reject(e.message)
-      }
-
-      promise.resolve(true)
+      val downloader = Downloader()
+      downloader.execute(params)
+      this.downloaders.put(jobId, downloader)
+    } catch (ex: Exception) {
+      ex.printStackTrace()
+      promise.reject(options.getString("toFile"), ex)
     }
+  }
 
-    getNextChunk()
+  @ReactMethod
+  fun stopDownload(jobId: Int) {
+    val downloader: Downloader = this.downloaders.get(jobId)
+    if (downloader != null) {
+      downloader.stop()
+    }
   }
 
   companion object {

@@ -32,7 +32,11 @@ export function download(options: {
   headers?: { [key: string]: string };
 }): {
   jobId: number,
-  promise: Promise<any>
+  promise: Promise<{
+    jobId: number,
+    statusCode: number,
+    bytesWritten: number,
+  }>
 } {
   const jobId = getJobId()
   const promise = ChunkedDl.download({
@@ -45,10 +49,12 @@ export function download(options: {
   }
 }
 
-export function stopDownload(jobId: number): Promise<any> {
+export function stopDownload(jobId: number): Promise<void> {
   return ChunkedDl.stopDownload(jobId);
 }
 
-export function resumeDownload(jobId: number): Promise<any> {
+export function resumeDownload(jobId: number): Promise<void> {
+  if(!ChunkedDl.resumeDownload)
+    throw new Error('resumeDownload is not supported');
   return ChunkedDl.resumeDownload(jobId);
 }
