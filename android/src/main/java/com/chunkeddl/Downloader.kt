@@ -35,6 +35,7 @@ open class Downloader : AsyncTask<DownloadParams, LongArray, DownloadResult>() {
   private var params: DownloadParams = DownloadParams()
   private var res: DownloadResult = DownloadResult()
   private val abort: AtomicBoolean = AtomicBoolean(false)
+  private var conn: HttpURLConnection? = null
 
   override fun doInBackground(vararg args: DownloadParams?): DownloadResult? {
     res = DownloadResult()
@@ -75,35 +76,36 @@ open class Downloader : AsyncTask<DownloadParams, LongArray, DownloadResult>() {
       val isFinalChunk = end >= params.contentLength
 
       val url = URL("${params.url}&range=${start}-${end}")
-      val conn = url.openConnection() as HttpURLConnection
-      conn.requestMethod = "GET"
+      conn = url.openConnection() as HttpURLConnection
+      conn!!.requestMethod = "GET"
 
       if(params.headers != null) {
         for (header in params.headers!!.entryIterator)
-          conn.setRequestProperty(header.key, header.value as String)
+          conn!!.setRequestProperty(header.key, header.value as String)
       }
 
-      if (conn.responseCode == HttpURLConnection.HTTP_OK) {
+      if (conn!!.responseCode == HttpURLConnection.HTTP_OK) {
         if (abort.get())
           throw Exception("Download has been aborted")
 
-        res.statusCode = conn.responseCode;
-        inputStream = conn.inputStream
+        res.statusCode = conn!!.responseCode;
+        inputStream = conn!!.inputStream
         if (!file.exists()) {
           throw Exception("File does not exists");
         }
-        res.bytesWritten = conn.contentLength.toLong();
+        res.bytesWritten = conn!!.contentLength.toLong();
         outputStream.write(inputStream.readBytes())
         inputStream.close()
       } else {
         if (abort.get())
           throw Exception("Download has been aborted")
 
-        res.statusCode = conn.responseCode;
-        throw Exception("HTTP Error: ${conn.responseCode} ${conn.responseMessage}");
+        res.statusCode = conn!!.responseCode;
+        throw Exception("HTTP Error: ${conn!!.responseCode} ${conn!!.responseMessage}");
       }
 
-      conn.disconnect()
+      conn!!.disconnect()
+      conn = null
 
       if(!isFinalChunk) {
         start = end + 1
@@ -120,6 +122,7 @@ open class Downloader : AsyncTask<DownloadParams, LongArray, DownloadResult>() {
 
   fun stop() {
     abort.set(true)
+    conn?.disconnect()
     try {
       File(params.toFile).delete()
     } catch (ex: Exception) {}
