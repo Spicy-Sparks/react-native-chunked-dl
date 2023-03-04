@@ -17,18 +17,38 @@ const ChunkedDl = NativeModules.ChunkedDl
       }
     );
 
-export function request(options: {
+let jobId: number = 0
+
+var getJobId = () => {
+  jobId += 1;
+  return jobId;
+}
+
+export function download(options: {
   url: string;
   toFile: string;
   contentLength: number;
   chunkSize?: number;
   headers?: { [key: string]: string };
-}): Promise<number> {
-  return ChunkedDl.request(
-    options.url,
-    options.toFile,
-    options.contentLength,
-    options.chunkSize ?? 0,
-    options.headers ?? {}
-  );
+}): {
+  jobId: number,
+  promise: Promise<any>
+} {
+  const jobId = getJobId()
+  const promise = ChunkedDl.download({
+    ...options,
+    jobId
+  })
+  return {
+    jobId,
+    promise
+  }
+}
+
+export function stopDownload(jobId: number): Promise<any> {
+  return ChunkedDl.stopDownload(jobId);
+}
+
+export function resumeDownload(jobId: number): Promise<any> {
+  return ChunkedDl.resumeDownload(jobId);
 }

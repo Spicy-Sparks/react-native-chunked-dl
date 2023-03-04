@@ -1,72 +1,60 @@
 @objc(ChunkedDl)
 class ChunkedDl: NSObject {
+    
+    var downloaders: [Int: Downloader] = [:]
 
-    @objc(request:toFile:contentLength:chunkSize:headers:withResolver:withRejecter:)
-    func request(url: NSString, toFile: NSString, contentLength: Int, chunkSize: Int, headers: NSDictionary, resolve:@escaping RCTPromiseResolveBlock, reject:@escaping RCTPromiseRejectBlock) -> Void {
+    @objc(download:withResolver:withRejecter:)
+    func request(options: NSDictionary, resolve:@escaping RCTPromiseResolveBlock, reject:@escaping RCTPromiseRejectBlock) -> Void {
+        
+        let jobId : Int = options["jobId"] as! Int;
+        let fromUrl : String = options["fromUrl"] as! String;
+        let toFile : String = options["toFile"] as! String;
+        let headers : NSDictionary = options["headers"] as! NSDictionary;
+        let chunkSize : Int = options["chunkSize"] as? Int ?? 1024 * 1024 * 10
+        let contentLength : Int = options["contentLength"] as! Int
+        let background = options["background"];
+        
+        let downloader = Downloader(jobId: jobId)
+        
+        downloaders[jobId] = downloader
       
-        var start = 0
-        var end = chunkSize <= 0 ? 1024 * 1024 * 10 : chunkSize
+       // create downloader instance and start the download
+        downloader.download(url: fromUrl, toFile: toFile, contentLength: contentLength, chunkSize: chunkSize, headers: headers, resolve: resolve, reject: reject)
+  }
+    
+    @objc(stopDownload:withResolver:withRejecter:)
+    func stopDownload(jobId: Int, resolve:@escaping RCTPromiseResolveBlock, reject:@escaping RCTPromiseRejectBlock) -> Void {
         
-        let uuid = UUID().uuidString
-        let sessionConfig = URLSessionConfiguration.background(withIdentifier: uuid)
-        let session = URLSession(configuration: sessionConfig, delegate: nil, delegateQueue: nil)
+        let downloader = downloaders[jobId]
         
-        let fileURL = URL(fileURLWithPath: toFile as String, isDirectory: false)
-        
-        do {
-            try? "".write(to: fileURL, atomically: true, encoding: .utf8)
-        }
-        catch {
-            reject("err", "Cannot create file", error)
+        if(downloader != nil){
+            downloader?.stopDownload()
         }
         
-        func getNextChunk() -> Void {
-            if (end >= contentLength){
-                end = contentLength
-            }
-
-            let isFinalChunk = end >= contentLength
-            
-            let finalUrl = URL(string: "\(url)&range=\(start)-\(end)")!
-            
-            var request = URLRequest(url: finalUrl)
-            request.httpMethod = "GET"
-            
-            for (key, value) in headers {
-                request.addValue(value as! String, forHTTPHeaderField: key as! String)
-            }
-
-            let task = URLSession.shared.dataTask(with: request) { data, response, error in
-                if (error != nil || data == nil) {
-                    reject("err", error?.localizedDescription, error)
-                }
-                
-                do {
-                    if let fileHandle = try? FileHandle(forWritingTo: fileURL) {
-                        try? fileHandle.seekToEndOfFile()
-                        try? fileHandle.write(data!)
-                        try? fileHandle.closeFile()
-                    } else {
-                        try? data!.write(to: fileURL)
-                    }
-                }
-                catch {
-                    reject("err", "Cannot write on file", error)
-                }
-                
-                if(!isFinalChunk) {
-                    start = end + 1
-                    end += chunkSize
-                    getNextChunk()
-                    return
-                }
-                
-                resolve(true)
-            }
-            
-            task.resume()
+        resolve(true)
+  }
+    
+    @objc(suspendDownload:withResolver:withRejecter:)
+    func suspendDownload(jobId: Int, resolve:@escaping RCTPromiseResolveBlock, reject:@escaping RCTPromiseRejectBlock) -> Void {
+        
+        let downloader = downloaders[jobId]
+        
+        if(downloader != nil){
+            downloader?.suspendDownload()
         }
         
-        getNextChunk()
+        resolve(true)
+  }
+    
+    @objc(resumeDownload:withResolver:withRejecter:)
+    func resumeDownload(jobId: Int, resolve:@escaping RCTPromiseResolveBlock, reject:@escaping RCTPromiseRejectBlock) -> Void {
+        
+        let downloader = downloaders[jobId]
+        
+        if(downloader != nil){
+            downloader?.resumeDownload()
+        }
+        
+        resolve(true)
   }
 }
