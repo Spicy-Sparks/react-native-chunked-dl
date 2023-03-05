@@ -59,7 +59,6 @@ class Downloader: NSObject, URLSessionDownloadDelegate {
         }
         
         let uuid = UUID().uuidString
-        
 
         ChunkedDlHandler.setUuidForJobId(jobId as NSNumber, uuid: uuid)
         
@@ -81,7 +80,6 @@ class Downloader: NSObject, URLSessionDownloadDelegate {
             rejectCallback!("err", "Cannot write on file", NSError())
             return
         }
-        
         
         do {
             try FileManager.default.removeItem(atPath: location.absoluteString)
