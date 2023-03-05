@@ -1,5 +1,5 @@
 @objc(Downloader)
-class Downloader: NSObject, URLSessionDataDelegate {
+class Downloader: NSObject, URLSessionDownloadDelegate {
     
     var jobId : Int
     var url : String = ""
@@ -13,7 +13,6 @@ class Downloader: NSObject, URLSessionDataDelegate {
     var contentLength : Int = 0
     var chunkSize : Int = 0
     var headers : NSDictionary = [:]
-    var tmpChunk : Data = Data.init()
     
     init(jobId: Int) {
         self.jobId = jobId
@@ -59,42 +58,50 @@ class Downloader: NSObject, URLSessionDataDelegate {
             request.addValue(value as! String, forHTTPHeaderField: key as! String)
         }
         
-        let sessionConfig = URLSessionConfiguration.background(withIdentifier: String(jobId))
+        let uuid = UUID().uuidString
+        
+
+        ChunkedDlHandler.setUuidForJobId(jobId as NSNumber, uuid: uuid)
+        
+        let sessionConfig = URLSessionConfiguration.background(withIdentifier: uuid)
+        sessionConfig.isDiscretionary = false
         let session = URLSession(configuration: sessionConfig, delegate: self, delegateQueue: nil)
 
-        task = session.dataTask(with: request)
+        task = session.downloadTask(with: request)
         
         task.resume()
     }
     
-    func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive data: Data) {
-        tmpChunk.append(data)
-    }
-    
-    func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
-        if error != nil {
-            tmpChunk = Data.init()
-            rejectCallback!("err", "Cannot write on file", error)
-            return
-        }
+    func urlSession(_ session: URLSession, downloadTask: URLSessionDownloadTask, didFinishDownloadingTo location: URL) {
         
         do {
-            if let fileHandle = try? FileHandle(forWritingTo: self.fileURL!) {
-                fileHandle.seekToEndOfFile()
-                fileHandle.write(tmpChunk)
-                fileHandle.closeFile()
-            } else {
-                try tmpChunk.write(to: self.fileURL!)
-            }
-            tmpChunk = Data.init()
+            merge(files: [location], to: self.fileURL!)
         }
         catch {
-            tmpChunk = Data.init()
             rejectCallback!("err", "Cannot write on file", NSError())
             return
         }
         
+        
+        do {
+            try FileManager.default.removeItem(atPath: location.absoluteString)
+        } catch {}
+        
         let isFinalChunk = end >= contentLength
+        
+        let uuid = ChunkedDlHandler.getUuidForJobId(jobId as NSNumber)
+        
+        if(uuid != nil){
+            
+            let ch = ChunkedDlHandler.getCompletionHandler(forIdentifier: uuid!)
+            
+            if(ch != nil){
+                ch!()
+            }
+            
+            ChunkedDlHandler.removeCompletionHandler(forIdentifier: uuid!)
+            
+        }
         
         if(!isFinalChunk) {
             start = end + 1
@@ -108,6 +115,14 @@ class Downloader: NSObject, URLSessionDataDelegate {
             "statusCode": 200,
             "bytesWritten": contentLength
         ])
+    }
+    
+    func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
+        if error != nil {
+            let desc = error?.localizedDescription
+            rejectCallback!("err", "Cannot write on file", error)
+            return
+        }
     }
     
     func stopDownload(){
@@ -145,4 +160,31 @@ class Downloader: NSObject, URLSessionDataDelegate {
         }
         
     }
+    
+    func merge(files: [URL], to destination: URL, chunkSize: Int = 100000000)  {
+            for partLocation in files {
+                // create a stream that reads the data above
+                let stream: InputStream
+                stream = InputStream.init(url: partLocation)!
+                // begin reading
+                stream.open()
+                let buffer = UnsafeMutablePointer<UInt8>.allocate(capacity: chunkSize)
+                //            var writeData : Data = Data()
+                while stream.hasBytesAvailable {
+                    let read = stream.read(buffer, maxLength: chunkSize)
+
+                    var writeData:Data = Data()
+                    writeData.append(buffer, count: read)
+                    if let outputStream = OutputStream(url: destination, append: true) {
+                        outputStream.open()
+                        writeData.withUnsafeBytes { outputStream.write($0, maxLength: writeData.count) }
+                        outputStream.close()
+                        writeData.removeAll()
+                    }
+                }
+                stream.close()
+                buffer.deallocate()
+
+            }
+        }
 }

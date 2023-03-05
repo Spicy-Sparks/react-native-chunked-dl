@@ -1,6 +1,8 @@
 @objc(ChunkedDl)
 class ChunkedDl: NSObject {
     
+    typealias CompletionHandler = ()->Void
+    
     var downloaders: [Int: Downloader] = [:]
     
     @objc(download:withResolver:withRejecter:)
@@ -19,7 +21,9 @@ class ChunkedDl: NSObject {
         downloaders[jobId] = downloader
         
         // create downloader instance and start the download
-        downloader.download(url: url, toFile: toFile, contentLength: contentLength, chunkSize: chunkSize, headers: headers, resolve: resolve, reject: reject)
+    downloader.download(url: url, toFile: toFile, contentLength: contentLength, chunkSize: chunkSize, headers: headers, resolve: resolve, reject: reject)
+        
+       
     }
     
     @objc(stopDownload:withResolver:withRejecter:)
