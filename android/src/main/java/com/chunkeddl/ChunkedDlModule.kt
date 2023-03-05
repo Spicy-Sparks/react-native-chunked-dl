@@ -17,7 +17,7 @@ class ChunkedDlModule(reactContext: ReactApplicationContext) : ReactContextBaseJ
       val jobId = options.getInt("jobId")
       val params = DownloadParams()
       params.url = options.getString("url")
-      params.toFile = options.getString("toFile")
+      params.toFile = options.getString("toFile")?.replace("file://", "")
       params.headers = options.getMap("headers")
       params.contentLength = options.getInt("contentLength")
       params.chunkSize = options.getInt("chunkSize")
