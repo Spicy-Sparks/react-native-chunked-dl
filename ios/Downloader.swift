@@ -74,7 +74,7 @@ class Downloader: NSObject, URLSessionDownloadDelegate {
     func urlSession(_ session: URLSession, downloadTask: URLSessionDownloadTask, didFinishDownloadingTo location: URL) {
         
         do {
-            merge(files: [location], to: self.fileURL!)
+            try merge(files: [location], to: self.fileURL!)
         }
         catch {
             rejectCallback!("err", "Cannot write on file", NSError())
@@ -117,7 +117,6 @@ class Downloader: NSObject, URLSessionDownloadDelegate {
     
     func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
         if error != nil {
-            let desc = error?.localizedDescription
             rejectCallback!("err", "Cannot write on file", error)
             return
         }
@@ -159,7 +158,7 @@ class Downloader: NSObject, URLSessionDownloadDelegate {
         
     }
     
-    func merge(files: [URL], to destination: URL, chunkSize: Int = 100000000)  {
+    func merge(files: [URL], to destination: URL, chunkSize: Int = 20000000)  {
             for partLocation in files {
                 // create a stream that reads the data above
                 let stream: InputStream
@@ -175,7 +174,7 @@ class Downloader: NSObject, URLSessionDownloadDelegate {
                     writeData.append(buffer, count: read)
                     if let outputStream = OutputStream(url: destination, append: true) {
                         outputStream.open()
-                        writeData.withUnsafeBytes { outputStream.write($0, maxLength: writeData.count) }
+                        outputStream.write(buffer, maxLength: writeData.count)
                         outputStream.close()
                         writeData.removeAll()
                     }
