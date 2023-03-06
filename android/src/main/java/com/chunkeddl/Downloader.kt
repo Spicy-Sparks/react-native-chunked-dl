@@ -95,6 +95,7 @@ open class Downloader : AsyncTask<DownloadParams, LongArray, DownloadResult>() {
         }
         res.bytesWritten = conn!!.contentLength.toLong();
         outputStream.write(inputStream.readBytes())
+        outputStream.flush()
         inputStream.close()
       } else {
         if (abort.get())
