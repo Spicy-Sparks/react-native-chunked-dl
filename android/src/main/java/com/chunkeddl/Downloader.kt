@@ -94,7 +94,15 @@ open class Downloader : AsyncTask<DownloadParams, LongArray, DownloadResult>() {
           throw Exception("File does not exists");
         }
         res.bytesWritten = conn!!.contentLength.toLong();
-        outputStream.write(inputStream.readBytes())
+
+        val bufferSize = 8 * 1024 // set the buffer size to 8 KB
+        val buffer = ByteArray(bufferSize)
+        var bytesRead = inputStream.read(buffer)
+        while (bytesRead != -1) {
+          outputStream.write(buffer, 0, bytesRead)
+          bytesRead = inputStream.read(buffer)
+        }
+
         outputStream.flush()
         inputStream.close()
       } else {
