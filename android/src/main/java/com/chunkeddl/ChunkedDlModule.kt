@@ -1,139 +1,57 @@
 package com.chunkeddl
 
-import android.os.AsyncTask
-import com.facebook.react.bridge.ReadableMap
-import java.io.File
-import java.io.FileOutputStream
-import java.io.InputStream
-import java.io.OutputStream
-import java.net.HttpURLConnection
-import java.net.URL
-import java.nio.file.Files
-import java.util.concurrent.atomic.AtomicBoolean
+import android.util.SparseArray
+import com.facebook.react.bridge.*
 
-class DownloadResult {
-  var statusCode = 0
-  var bytesWritten: Long = 0
-  var exception: Exception? = null
-}
+class ChunkedDlModule(reactContext: ReactApplicationContext) : ReactContextBaseJavaModule(reactContext) {
 
-class DownloadParams {
-  interface OnTaskCompleted {
-    fun onTaskCompleted(res: DownloadResult?)
+  private val downloaders: SparseArray<Downloader> = SparseArray()
+
+  override fun getName(): String {
+    return NAME
   }
 
-  var url: String? = null
-  var toFile: String? = null
-  var headers: ReadableMap? = null
-  var chunkSize: Int = 0
-  var contentLength: Int = 0
-
-  var onTaskCompleted: OnTaskCompleted? = null
-}
-
-open class Downloader : AsyncTask<DownloadParams, LongArray, DownloadResult>() {
-  private var params: DownloadParams = DownloadParams()
-  private var res: DownloadResult = DownloadResult()
-  private val abort: AtomicBoolean = AtomicBoolean(false)
-  private var conn: HttpURLConnection? = null
-
-  override fun doInBackground(vararg args: DownloadParams?): DownloadResult? {
-    res = DownloadResult()
-    if(args[0] == null) {
-      res.exception = Exception("Invalid params")
-      return res
-    }
-    params = args[0]!!
-    Thread {
-      try {
-        download(this.params, res)
-        this.params.onTaskCompleted?.onTaskCompleted(res)
-      } catch (ex: java.lang.Exception) {
-        res.exception = ex
-        this.params.onTaskCompleted?.onTaskCompleted(res)
-      }
-    }.start()
-    return res
-  }
-
-  private fun download(param: DownloadParams, res: DownloadResult) {
-    var start = 0
-    var end = if (params.chunkSize <= 0) 1024 * 1024 * 10 else params.chunkSize
-
-    var file = File(params.toFile)
-
-    var inputStream : InputStream
-    var outputStream : OutputStream = FileOutputStream(file)
-
-    fun getNextChunk() {
-      if (abort.get())
-        throw Exception("Download has been aborted")
-
-      if (end >= params.contentLength){
-        end = params.contentLength
-      }
-
-      val isFinalChunk = end >= params.contentLength
-
-      val url = URL("${params.url}&range=${start}-${end}")
-      conn = url.openConnection() as HttpURLConnection
-      conn!!.requestMethod = "GET"
-
-      if(params.headers != null) {
-        for (header in params.headers!!.entryIterator)
-          conn!!.setRequestProperty(header.key, header.value as String)
-      }
-
-      if (conn!!.responseCode == HttpURLConnection.HTTP_OK) {
-        if (abort.get())
-          throw Exception("Download has been aborted")
-
-        res.statusCode = conn!!.responseCode;
-        inputStream = conn!!.inputStream
-        if (!file.exists()) {
-          throw Exception("File does not exists");
-        }
-        res.bytesWritten = conn!!.contentLength.toLong();
-
-        val bufferSize = 8 * 1024 // set the buffer size to 8 KB
-        val buffer = ByteArray(bufferSize)
-        var bytesRead = inputStream.read(buffer)
-        while (bytesRead != -1) {
-          outputStream.write(buffer, 0, bytesRead)
-          bytesRead = inputStream.read(buffer)
-        }
-
-        outputStream.flush()
-        inputStream.close()
-      } else {
-        if (abort.get())
-          throw Exception("Download has been aborted")
-
-        res.statusCode = conn!!.responseCode;
-        throw Exception("HTTP Error: ${conn!!.responseCode} ${conn!!.responseMessage}");
-      }
-
-      conn!!.disconnect()
-      conn = null
-
-      if(!isFinalChunk) {
-        start = end + 1
-        end += params.chunkSize
-        getNextChunk()
-        return
-      }
-
-      outputStream.close()
-    }
-
-    getNextChunk()
-  }
-
-  fun stop() {
-    abort.set(true)
-    conn?.disconnect()
+  @ReactMethod
+  fun download(options: ReadableMap, promise: Promise) {
     try {
-      File(params.toFile).delete()
-    } catch (ex: Exception) {}
+      val jobId = options.getInt("jobId")
+      val params = DownloadParams()
+      params.url = options.getString("url")
+      params.toFile = options.getString("toFile")?.replace("file://", "")
+      params.headers = options.getMap("headers")
+      params.contentLength = options.getInt("contentLength")
+      params.chunkSize = options.getInt("chunkSize")
+      params.onTaskCompleted = object : DownloadParams.OnTaskCompleted {
+        override fun onTaskCompleted(res: DownloadResult?) {
+          if (res!!.exception == null) {
+            val infoMap = Arguments.createMap()
+            infoMap.putInt("jobId", jobId)
+            infoMap.putInt("statusCode", res.statusCode)
+            infoMap.putDouble("bytesWritten", res.bytesWritten.toDouble())
+            promise.resolve(infoMap)
+          } else {
+            promise.reject(options.getString("toFile"), res.exception)
+          }
+        }
+      }
+      val downloader = Downloader()
+      downloader.execute(params)
+      this.downloaders.put(jobId, downloader)
+    } catch (ex: Exception) {
+      ex.printStackTrace()
+      promise.reject(options.getString("toFile"), ex)
+    }
+  }
+
+  @ReactMethod
+  fun stopDownload(jobId: Int) {
+    val downloader: Downloader = this.downloaders.get(jobId)
+    if (downloader != null) {
+      downloader.stop()
+    }
+  }
+
+  companion object {
+    const val NAME = "ChunkedDl"
   }
 }
