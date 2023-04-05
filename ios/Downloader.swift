@@ -117,6 +117,11 @@ class Downloader: NSObject, URLSessionDownloadDelegate {
     
     func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
         if error != nil {
+            if (self.stopTask) {
+                rejectCallback!("err", "Download aborted", error)
+                return
+            }
+            
             rejectCallback!("err", "Cannot write on file", error)
             return
         }
