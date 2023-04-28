@@ -72,12 +72,27 @@ class Downloader: NSObject, URLSessionDownloadDelegate {
     }
     
     func urlSession(_ session: URLSession, downloadTask: URLSessionDownloadTask, didFinishDownloadingTo location: URL) {
-        
         do {
             try merge(files: [location], to: self.fileURL!)
         }
         catch {
-            rejectCallback!("err", "Cannot write on file", NSError())
+            rejectCallback!("err", "Cannot write on file", nil)
+            return
+        }
+
+        var downloadedBytes = 0
+        let filePath = location.path
+        let fileExists = FileManager.default.fileExists(atPath: filePath)
+        if fileExists {
+            do {
+                let fileAttributes = try FileManager.default.attributesOfItem(atPath: filePath)
+                let fileSizeNumber = fileAttributes[FileAttributeKey.size] as! NSNumber
+                downloadedBytes = fileSizeNumber.intValue
+            } catch {}
+        }
+        
+        if(downloadedBytes <= 0) {
+            rejectCallback!("err", "Invalid or empty chunk", nil)
             return
         }
         
