@@ -3,7 +3,7 @@ package com.chunkeddl
 import android.util.SparseArray
 import com.facebook.react.bridge.*
 
-class ChunkedDlModule(reactContext: ReactApplicationContext) : ReactContextBaseJavaModule(reactContext) {
+class ChunkedDlModule(private val reactContext: ReactApplicationContext) : ReactContextBaseJavaModule(reactContext) {
 
   private val downloaders: SparseArray<Downloader> = SparseArray()
 
@@ -34,7 +34,7 @@ class ChunkedDlModule(reactContext: ReactApplicationContext) : ReactContextBaseJ
           }
         }
       }
-      val downloader = Downloader()
+      val downloader = Downloader(reactContext)
       downloader.execute(params)
       this.downloaders.put(jobId, downloader)
     } catch (ex: Exception) {
