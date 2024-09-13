@@ -1,14 +1,20 @@
 package com.chunkeddl
 
 import android.os.AsyncTask
+import android.os.Bundle
+import android.util.Log
+import com.facebook.react.bridge.Arguments
+import com.facebook.react.bridge.ReactApplicationContext
+import com.facebook.react.bridge.ReactContext
 import com.facebook.react.bridge.ReadableMap
+import com.facebook.react.bridge.WritableMap
+import com.facebook.react.modules.core.DeviceEventManagerModule
 import java.io.File
 import java.io.FileOutputStream
 import java.io.InputStream
 import java.io.OutputStream
 import java.net.HttpURLConnection
 import java.net.URL
-import java.nio.file.Files
 import java.util.concurrent.atomic.AtomicBoolean
 
 class DownloadResult {
@@ -30,8 +36,7 @@ class DownloadParams {
 
   var onTaskCompleted: OnTaskCompleted? = null
 }
-
-open class Downloader : AsyncTask<DownloadParams, LongArray, DownloadResult>() {
+open class Downloader (private val reactContext: ReactApplicationContext): AsyncTask<DownloadParams, LongArray, DownloadResult>() {
   private var params: DownloadParams = DownloadParams()
   private var res: DownloadResult = DownloadResult()
   private val abort: AtomicBoolean = AtomicBoolean(false)
@@ -56,12 +61,18 @@ open class Downloader : AsyncTask<DownloadParams, LongArray, DownloadResult>() {
     return res
   }
 
+  private fun sendEvent(reactContext: ReactContext, eventName: String, params: WritableMap) {
+    reactContext
+      .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
+      .emit(eventName, params)
+  }
+
   private fun download(param: DownloadParams, res: DownloadResult) {
     var start = 0
+    var downloaded = 0
     var end = if (params.chunkSize <= 0) 1024 * 1024 * 10 else params.chunkSize
 
     var file = File(params.toFile)
-
     var inputStream : InputStream
     var outputStream : OutputStream = FileOutputStream(file)
 
@@ -69,7 +80,7 @@ open class Downloader : AsyncTask<DownloadParams, LongArray, DownloadResult>() {
       if (abort.get())
         throw Exception("Download has been aborted")
 
-      if (end >= params.contentLength){
+      if (end >= params.contentLength) {
         end = params.contentLength
       }
 
@@ -79,7 +90,7 @@ open class Downloader : AsyncTask<DownloadParams, LongArray, DownloadResult>() {
       conn = url.openConnection() as HttpURLConnection
       conn!!.requestMethod = "GET"
 
-      if(params.headers != null) {
+      if (params.headers != null) {
         for (header in params.headers!!.entryIterator)
           conn!!.setRequestProperty(header.key, header.value as String)
       }
@@ -88,18 +99,27 @@ open class Downloader : AsyncTask<DownloadParams, LongArray, DownloadResult>() {
         if (abort.get())
           throw Exception("Download has been aborted")
 
-        res.statusCode = conn!!.responseCode;
+        res.statusCode = conn!!.responseCode
         inputStream = conn!!.inputStream
         if (!file.exists()) {
-          throw Exception("File does not exists");
+          throw Exception("File does not exist")
         }
-        res.bytesWritten = conn!!.contentLength.toLong();
+        res.bytesWritten = conn!!.contentLength.toLong()
 
-        val bufferSize = 8 * 1024 // set the buffer size to 8 KB
+        val bufferSize = 8 * 1024 // 8 KB buffer size
         val buffer = ByteArray(bufferSize)
         var bytesRead = inputStream.read(buffer)
         while (bytesRead != -1) {
           outputStream.write(buffer, 0, bytesRead)
+
+          // Increment downloaded by the number of bytes just written
+          downloaded += bytesRead
+          Log.d("Downloaded var:", "Downloaded: $downloaded, ContentLength: ${params.contentLength}")
+
+          val paramsMap = Arguments.createMap()
+          paramsMap.putInt("downloaded", downloaded)
+          sendEvent(reactContext, eventName = "downloadProgress", params = paramsMap)
+
           bytesRead = inputStream.read(buffer)
         }
 
@@ -109,14 +129,14 @@ open class Downloader : AsyncTask<DownloadParams, LongArray, DownloadResult>() {
         if (abort.get())
           throw Exception("Download has been aborted")
 
-        res.statusCode = conn!!.responseCode;
-        throw Exception("HTTP Error: ${conn!!.responseCode} ${conn!!.responseMessage}");
+        res.statusCode = conn!!.responseCode
+        throw Exception("HTTP Error: ${conn!!.responseCode} ${conn!!.responseMessage}")
       }
 
       conn!!.disconnect()
       conn = null
 
-      if(!isFinalChunk) {
+      if (!isFinalChunk) {
         start = end + 1
         end += params.chunkSize
         getNextChunk()
