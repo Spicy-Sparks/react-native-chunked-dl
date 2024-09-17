@@ -13,12 +13,15 @@ class Downloader: NSObject, URLSessionDownloadDelegate {
     var contentLength : Int = 0
     var chunkSize : Int = 0
     var headers : NSDictionary = [:]
+    var downloaded: Int = 0
+    var trackId: String = ""
+    var onProgress: (([String: Any]) -> Void)?
     
     init(jobId: Int) {
         self.jobId = jobId
     }
 
-    func download(url: String, toFile: String, contentLength: Int, chunkSize: Int, headers: NSDictionary, resolve:@escaping RCTPromiseResolveBlock, reject:@escaping RCTPromiseRejectBlock) -> Void {
+    func download(url: String, toFile: String, contentLength: Int, chunkSize: Int, headers: NSDictionary, trackId: String, resolve:@escaping RCTPromiseResolveBlock, reject:@escaping RCTPromiseRejectBlock) -> Void {
         
         resolveCallback = resolve
         rejectCallback = reject
@@ -26,6 +29,7 @@ class Downloader: NSObject, URLSessionDownloadDelegate {
         self.url = url
         self.headers = headers
         self.contentLength = contentLength
+        self.trackId = trackId
         self.chunkSize = chunkSize
         self.start = 0;
         self.end = chunkSize <= 0 ? 1024 * 1024 * 10 : chunkSize
@@ -69,6 +73,18 @@ class Downloader: NSObject, URLSessionDownloadDelegate {
         task = session.downloadTask(with: request)
         
         task.resume()
+    }
+    
+    func urlSession(_ session: URLSession, downloadTask: URLSessionDownloadTask, didWriteData bytesWritten: Int64, totalBytesWritten: Int64, totalBytesExpectedToWrite: Int64) {
+        downloaded += Int(bytesWritten)
+
+        if !trackId.isEmpty {
+            onProgress?([
+                "bytesWritten": downloaded,
+                "contentLength": contentLength,
+                "trackId": trackId
+            ])
+        }
     }
     
     func urlSession(_ session: URLSession, downloadTask: URLSessionDownloadTask, didFinishDownloadingTo location: URL) {

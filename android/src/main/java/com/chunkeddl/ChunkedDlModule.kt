@@ -21,6 +21,7 @@ class ChunkedDlModule(private val reactContext: ReactApplicationContext) : React
       params.headers = options.getMap("headers")
       params.contentLength = options.getInt("contentLength")
       params.chunkSize = options.getInt("chunkSize")
+      params.trackId = options.getString("trackId")
       params.onTaskCompleted = object : DownloadParams.OnTaskCompleted {
         override fun onTaskCompleted(res: DownloadResult?) {
           if (res!!.exception == null) {

@@ -1,9 +1,17 @@
 @objc(ChunkedDl)
-class ChunkedDl: NSObject {
+class ChunkedDl: RCTEventEmitter {
     
     typealias CompletionHandler = ()->Void
     
     var downloaders: [Int: Downloader] = [:]
+    
+    override static func requiresMainQueueSetup() -> Bool {
+        return false
+    }
+
+    override func supportedEvents() -> [String]! {
+        return ["downloadProgress"]
+    }
     
     @objc(download:withResolver:withRejecter:)
     func request(options: NSDictionary, resolve:@escaping RCTPromiseResolveBlock, reject:@escaping RCTPromiseRejectBlock) -> Void {
@@ -14,13 +22,18 @@ class ChunkedDl: NSObject {
         let headers : NSDictionary = options["headers"] as? NSDictionary ?? NSDictionary();
         let chunkSize : Int = options["chunkSize"] as? Int ?? 1024 * 1024 * 10
         let contentLength : Int = options["contentLength"] as! Int
+        let trackId : String = options["trackId"] as? String ?? "";
         let background = options["background"];
         
         let downloader = Downloader(jobId: jobId)
         
+        downloader.onProgress = { [weak self] progressData in
+            self?.sendEvent(withName: "downloadProgress", body: progressData)
+        }
+        
         downloaders[jobId] = downloader
         
-        downloader.download(url: url, toFile: toFile, contentLength: contentLength, chunkSize: chunkSize, headers: headers, resolve: resolve, reject: reject)
+        downloader.download(url: url, toFile: toFile, contentLength: contentLength, chunkSize: chunkSize, headers: headers, trackId: trackId, resolve: resolve, reject: reject)
     }
     
     @objc(stopDownload:withResolver:withRejecter:)

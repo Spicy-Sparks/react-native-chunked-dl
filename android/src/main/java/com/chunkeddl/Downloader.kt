@@ -28,6 +28,7 @@ class DownloadParams {
     fun onTaskCompleted(res: DownloadResult?)
   }
 
+  var trackId: String? = null
   var url: String? = null
   var toFile: String? = null
   var headers: ReadableMap? = null
@@ -116,9 +117,13 @@ open class Downloader (private val reactContext: ReactApplicationContext): Async
           downloaded += bytesRead
           Log.d("Downloaded var:", "Downloaded: $downloaded, ContentLength: ${params.contentLength}")
 
-          val paramsMap = Arguments.createMap()
-          paramsMap.putInt("downloaded", downloaded)
-          sendEvent(reactContext, eventName = "downloadProgress", params = paramsMap)
+          if (params.trackId != null) {
+            val paramsMap = Arguments.createMap()
+            paramsMap.putInt("bytesWritten", downloaded)
+            paramsMap.putString("trackId", params.trackId)
+            paramsMap.putInt("contentLength", params.contentLength)
+            sendEvent(reactContext, eventName = "downloadProgress", params = paramsMap)
+          }
 
           bytesRead = inputStream.read(buffer)
         }

@@ -1,8 +1,9 @@
 #import <React/RCTBridgeModule.h>
+#import <React/RCTEventEmitter.h>
 
 typedef void (^CompletionHandler)(void);
 
-@interface RCT_EXTERN_MODULE(ChunkedDl, NSObject)
+@interface RCT_EXTERN_MODULE(ChunkedDl, RCTEventEmitter<RCTBridgeModule>)
 
 RCT_EXTERN_METHOD(download:(NSDictionary*)options
                  withResolver:(RCTPromiseResolveBlock)resolve

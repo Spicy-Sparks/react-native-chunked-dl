@@ -6,7 +6,6 @@
 //
 
 #import <React/RCTBridgeModule.h>
-#import <React/RCTEventEmitter.h>
 #import <React/RCTLog.h>
 
 typedef void (^CompletionHandler)(void);
