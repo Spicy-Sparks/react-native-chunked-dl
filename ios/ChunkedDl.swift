@@ -22,7 +22,7 @@ class ChunkedDl: RCTEventEmitter {
         let headers : NSDictionary = options["headers"] as? NSDictionary ?? NSDictionary();
         let chunkSize : Int = options["chunkSize"] as? Int ?? 1024 * 1024 * 10
         let contentLength : Int = options["contentLength"] as! Int
-        let trackId : String = options["trackId"] as? String ?? "";
+        let contentId : String = options["contentId"] as? String ?? "";
         let background = options["background"];
         
         let downloader = Downloader(jobId: jobId)
@@ -33,7 +33,7 @@ class ChunkedDl: RCTEventEmitter {
         
         downloaders[jobId] = downloader
         
-        downloader.download(url: url, toFile: toFile, contentLength: contentLength, chunkSize: chunkSize, headers: headers, trackId: trackId, resolve: resolve, reject: reject)
+        downloader.download(url: url, toFile: toFile, contentLength: contentLength, chunkSize: chunkSize, headers: headers, contentId: contentId, resolve: resolve, reject: reject)
     }
     
     @objc(stopDownload:withResolver:withRejecter:)
