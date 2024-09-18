@@ -113,9 +113,7 @@ open class Downloader (private val reactContext: ReactApplicationContext): Async
         while (bytesRead != -1) {
           outputStream.write(buffer, 0, bytesRead)
 
-          // Increment downloaded by the number of bytes just written
           downloaded += bytesRead
-          Log.d("Downloaded var:", "Downloaded: $downloaded, ContentLength: ${params.contentLength}")
 
           if (params.contentId != null) {
             val paramsMap = Arguments.createMap()

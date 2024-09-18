@@ -28,6 +28,7 @@ export function download(options: {
   url: string;
   toFile: string;
   contentLength: number;
+  contentId?: string;
   chunkSize?: number;
   headers?: { [key: string]: string };
 }): {
