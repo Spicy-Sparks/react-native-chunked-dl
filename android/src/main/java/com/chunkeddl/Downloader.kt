@@ -1,8 +1,6 @@
 package com.chunkeddl
 
 import android.os.AsyncTask
-import android.os.Bundle
-import android.util.Log
 import com.facebook.react.bridge.Arguments
 import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReactContext
@@ -96,7 +94,7 @@ open class Downloader (private val reactContext: ReactApplicationContext): Async
           conn!!.setRequestProperty(header.key, header.value as String)
       }
 
-      if (conn!!.responseCode == HttpURLConnection.HTTP_OK) {
+      if (conn!!.responseCode in 200..299) {
         if (abort.get())
           throw Exception("Download has been aborted")
 
