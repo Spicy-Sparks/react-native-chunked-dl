@@ -31,7 +31,7 @@ class ChunkedDlModule(private val reactContext: ReactApplicationContext) : React
             infoMap.putDouble("bytesWritten", res.bytesWritten.toDouble())
             promise.resolve(infoMap)
           } else {
-            promise.reject(options.getString("toFile"), res.exception)
+            options.getString("toFile")?.let { promise.reject(it, res.exception) }
           }
         }
       }
@@ -40,7 +40,7 @@ class ChunkedDlModule(private val reactContext: ReactApplicationContext) : React
       this.downloaders.put(jobId, downloader)
     } catch (ex: Exception) {
       ex.printStackTrace()
-      promise.reject(options.getString("toFile"), ex)
+      options.getString("toFile")?.let { promise.reject(it, ex) }
     }
   }
 
